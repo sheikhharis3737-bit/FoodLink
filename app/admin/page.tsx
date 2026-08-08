@@ -3,18 +3,18 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { ArrowDown, ArrowUp, Eye, LogOut, Pencil, Plus, Save, Trash2, X } from 'lucide-react'
 
-type Item = { id: string; name: string; price: number; unit: string; updatedAt: string; visible: boolean; sortOrder: number; categoryId: string }
+type Item = { id: string; name: string; price: number; marketPrice: number; unit: string; updatedAt: string; visible: boolean; sortOrder: number; categoryId: string }
 type Category = { id: string; name: string; sort_order: number }
 type OrderLine = { itemId: string; name: string; price: number; quantity: number; total: number }
 type Order = { id: string; createdAt: string; customer: { name: string; phone: string; address: string; notes: string }; lines: OrderLine[]; grandTotal: number }
 
 const seedItems: Item[] = [
-  { id: 'basmati', name: 'Super Kernel Basmati', price: 420, unit: 'KG', updatedAt: new Date().toISOString(), visible: true, sortOrder: 1, categoryId: 'rice' },
-  { id: 'broken-rice', name: 'Broken Rice 1121', price: 285, unit: 'KG', updatedAt: new Date().toISOString(), visible: true, sortOrder: 2, categoryId: 'rice' },
-  { id: 'sella', name: 'Super Kernel Sella', price: 445, unit: 'KG', updatedAt: new Date().toISOString(), visible: true, sortOrder: 3, categoryId: 'rice' },
-  { id: 'white-chickpeas', name: 'White Chickpeas', price: 360, unit: 'KG', updatedAt: new Date().toISOString(), visible: true, sortOrder: 4, categoryId: 'pulses' },
-  { id: 'red-lentils', name: 'Red Lentils', price: 310, unit: 'KG', updatedAt: new Date().toISOString(), visible: true, sortOrder: 5, categoryId: 'pulses' },
-  { id: 'gram-flour', name: 'Gram Flour (Besan)', price: 290, unit: 'KG', updatedAt: new Date().toISOString(), visible: true, sortOrder: 6, categoryId: 'flours' },
+  { id: 'basmati', name: 'Super Kernel Basmati', price: 420, marketPrice: 480, unit: 'KG', updatedAt: new Date().toISOString(), visible: true, sortOrder: 1, categoryId: 'rice' },
+  { id: 'broken-rice', name: 'Broken Rice 1121', price: 285, marketPrice: 330, unit: 'KG', updatedAt: new Date().toISOString(), visible: true, sortOrder: 2, categoryId: 'rice' },
+  { id: 'sella', name: 'Super Kernel Sella', price: 445, marketPrice: 500, unit: 'KG', updatedAt: new Date().toISOString(), visible: true, sortOrder: 3, categoryId: 'rice' },
+  { id: 'white-chickpeas', name: 'White Chickpeas', price: 360, marketPrice: 410, unit: 'KG', updatedAt: new Date().toISOString(), visible: true, sortOrder: 4, categoryId: 'pulses' },
+  { id: 'red-lentils', name: 'Red Lentils', price: 310, marketPrice: 356, unit: 'KG', updatedAt: new Date().toISOString(), visible: true, sortOrder: 5, categoryId: 'pulses' },
+  { id: 'gram-flour', name: 'Gram Flour (Besan)', price: 290, marketPrice: 330, unit: 'KG', updatedAt: new Date().toISOString(), visible: true, sortOrder: 6, categoryId: 'flours' },
 ]
 const seedCategories: Category[] = [
   { id: 'rice', name: 'Rice Varieties', sort_order: 1 },
@@ -113,7 +113,7 @@ export default function AdminPage() {
   }
   const saveItem = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!editing?.name.trim() || editing.price <= 0) return
+    if (!editing?.name.trim() || editing.price <= 0 || editing.marketPrice <= 0) return
     const exists = items.some((item) => item.id === editing.id)
     const next = exists
       ? items.map((item) => (item.id === editing.id ? { ...editing, name: editing.name.trim(), updatedAt: new Date().toISOString() } : item))
@@ -216,7 +216,7 @@ export default function AdminPage() {
                     </p>
                     <h2>Items & prices</h2>
                   </div>
-                  <button className="button button-dark" onClick={() => setEditing({ id: '', name: '', price: 0, unit: 'KG', updatedAt: '', visible: true, sortOrder: items.length + 1, categoryId: sortedCategories[0]?.id || 'uncategorized' })}>
+                  <button className="button button-dark" onClick={() => setEditing({ id: '', name: '', price: 0, marketPrice: 0, unit: 'KG', updatedAt: '', visible: true, sortOrder: items.length + 1, categoryId: sortedCategories[0]?.id || 'uncategorized' })}>
                     <Plus size={17} /> Add item
                   </button>
                 </div>
@@ -229,7 +229,11 @@ export default function AdminPage() {
                         <input autoFocus value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="e.g. Super Kernel Basmati" />
                       </label>
                       <label>
-                        Price per KG
+                        Market price per KG
+                        <input type="number" min="0" value={editing.marketPrice || ''} onChange={(e) => setEditing({ ...editing, marketPrice: Number(e.target.value) })} placeholder="0" />
+                      </label>
+                      <label>
+                        Discounted price per KG
                         <input type="number" min="0" value={editing.price || ''} onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} placeholder="0" />
                       </label>
                       <label>
@@ -275,7 +279,10 @@ export default function AdminPage() {
                             <strong>{item.name}</strong>
                             <small>Updated {new Date(item.updatedAt).toLocaleDateString('en-PK')}</small>
                           </div>
-                          <strong>{money(item.price)}</strong>
+                          <div>
+                            <div><span style={{ fontSize: '11px', color: 'var(--muted-foreground)' }}>Market:</span> <strong>{money(item.marketPrice || item.price)}</strong></div>
+                            <div><span style={{ fontSize: '11px', color: 'var(--muted-foreground)' }}>Discount:</span> <strong>{money(item.price)}</strong></div>
+                          </div>
                           <button className={item.visible ? 'status-button live' : 'status-button'} onClick={() => saveItems(items.map((e) => (e.id === item.id ? { ...e, visible: !e.visible } : e)))}>
                             <Eye size={14} /> {item.visible ? 'Live' : 'Hidden'}
                           </button>
