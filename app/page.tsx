@@ -309,23 +309,43 @@ export default function Page() {
             </span>
           </div>
         </div>
-        <div className="hero-card">
-          <div className="card-tag">TODAY&apos;S WHOLESALE</div>
-          <div className="rice-art" aria-hidden="true">
-            <div className="rice-bag">FL</div>
-            <div className="rice-grain grain-one" />
-            <div className="rice-grain grain-two" />
-            <div className="rice-grain grain-three" />
+        <aside className="hero-card hero-business-card">
+          <div className="card-tag">FOOD LINK WHOLESALE</div>
+          <div className="business-card-content">
+            <div className="business-heading">
+              <span className="business-icon">
+                <ShoppingBasket size={26} />
+              </span>
+              <div>
+                <p className="business-kicker">Bulk Orders</p>
+                <h2>For Industries</h2>
+              </div>
+            </div>
+            <p className="business-copy">
+              Rice, flour, pulses and fresh grocery supplies for cafés,
+              restaurants, stores and institutional kitchens.
+            </p>
+            <ul className="business-points">
+              <li>
+                <Check size={14} /> Daily wholesale pricing
+              </li>
+              <li>
+                <Check size={14} /> Supply planning support
+              </li>
+              <li>
+                <Check size={14} /> Lahore delivery dispatch
+              </li>
+            </ul>
+            <a
+              className="button button-primary full-width whatsapp-button"
+              href="https://wa.me/923088458884"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Phone size={17} /> WhatsApp Us
+            </a>
           </div>
-          <p>Super Kernel Basmati</p>
-          <strong>
-            {" "}
-            <small></small>
-          </strong>
-          <div className="card-footer">
-            Price updated today <Check size={14} />
-          </div>
-        </div>
+        </aside>
       </section>
 
       <section className="process" id="how-it-works">

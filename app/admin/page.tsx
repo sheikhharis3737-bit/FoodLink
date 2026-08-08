@@ -126,6 +126,10 @@ export default function AdminPage() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"items" | "categories">("items");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
+    new Set(),
+  );
 
   useEffect(() => {
     setAuthed(sessionStorage.getItem("foodlink-admin") === "true");
@@ -161,6 +165,14 @@ export default function AdminPage() {
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => a.sort_order - b.sort_order),
     [categories],
+  );
+  const visibleCategories = useMemo(
+    () =>
+      sortedCategories.filter(
+        (category) =>
+          categoryFilter === "all" || category.id === categoryFilter,
+      ),
+    [categoryFilter, sortedCategories],
   );
   const itemsByCategory = useMemo(() => {
     const map: Record<string, Item[]> = {};
@@ -230,6 +242,17 @@ export default function AdminPage() {
         ),
       );
     }
+  };
+  const deleteOrder = (id: string) => {
+    if (!window.confirm("Delete this received order record?")) return;
+
+    fetch(`/api/orders?id=${encodeURIComponent(id)}`, { method: "DELETE" })
+      .then((response) => {
+        if (!response.ok) throw new Error("Failed to delete order");
+        setOrders((current) => current.filter((order) => order.id !== id));
+        if (selectedOrder?.id === id) setSelectedOrder(null);
+      })
+      .catch(() => setError("Could not delete the order. Please try again."));
   };
   const saveCategory = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -546,121 +569,194 @@ export default function AdminPage() {
                   </form>
                 )}
 
-                {Object.entries(itemsByCategory).map(([catId, catItems]) => (
-                  <div key={catId} style={{ marginBottom: "24px" }}>
-                    <h3
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "12px",
+                    marginBottom: "16px",
+                  }}
+                >
+                  <div>
+                    <span
                       style={{
-                        fontSize: "13px",
-                        fontWeight: 700,
+                        fontSize: "11px",
+                        fontWeight: 800,
                         color: "var(--muted-foreground)",
-                        marginBottom: "12px",
-                        textTransform: "uppercase",
+                        display: "block",
+                        marginBottom: "6px",
                       }}
                     >
-                      {getCategoryName(catId)}
-                    </h3>
-                    <div className="admin-table catalog-admin">
-                      <div className="admin-table-head">
-                        <span>ITEM</span>
-                        <span>PRICE</span>
-                        <span>STATUS</span>
-                        <span>ORDER</span>
-                        <span />
-                      </div>
-                      {catItems.map((item, index) => (
-                        <div className="admin-table-row" key={item.id}>
-                          <div>
-                            <strong>{item.name}</strong>
-                            <small>
-                              Updated{" "}
-                              {new Date(item.updatedAt).toLocaleDateString(
-                                "en-PK",
-                              )}
-                            </small>
-                          </div>
-                          <div>
-                            <div>
-                              <span
-                                style={{
-                                  fontSize: "11px",
-                                  color: "var(--muted-foreground)",
-                                }}
-                              >
-                                Market:
-                              </span>{" "}
-                              <strong>
-                                {money(item.marketPrice || item.price)}
-                              </strong>
-                            </div>
-                            <div>
-                              <span
-                                style={{
-                                  fontSize: "11px",
-                                  color: "var(--muted-foreground)",
-                                }}
-                              >
-                                Discount:
-                              </span>{" "}
-                              <strong>{money(item.price)}</strong>
-                            </div>
-                          </div>
-                          <button
-                            className={
-                              item.visible
-                                ? "status-button live"
-                                : "status-button"
-                            }
-                            onClick={() =>
-                              saveItems(
-                                items.map((e) =>
-                                  e.id === item.id
-                                    ? { ...e, visible: !e.visible }
-                                    : e,
-                                ),
-                              )
-                            }
-                          >
-                            <Eye size={14} /> {item.visible ? "Live" : "Hidden"}
-                          </button>
-                          <div style={{ display: "flex", gap: "4px" }}>
-                            {index > 0 && (
-                              <button
-                                className="icon-button"
-                                onClick={() => moveItem(item.id, -1)}
-                                aria-label="Move up"
-                              >
-                                <ArrowUp size={14} />
-                              </button>
-                            )}
-                            {index < catItems.length - 1 && (
-                              <button
-                                className="icon-button"
-                                onClick={() => moveItem(item.id, 1)}
-                                aria-label="Move down"
-                              >
-                                <ArrowDown size={14} />
-                              </button>
-                            )}
-                          </div>
-                          <button
-                            className="icon-button"
-                            onClick={() => setEditing(item)}
-                            aria-label="Edit item"
-                          >
-                            <Pencil size={14} />
-                          </button>
-                          <button
-                            className="icon-button"
-                            onClick={() => deleteItem(item.id)}
-                            aria-label="Delete item"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                      Filter catalog
+                    </span>
+                    <select
+                      value={categoryFilter}
+                      onChange={(event) =>
+                        setCategoryFilter(event.target.value)
+                      }
+                      style={{ minWidth: "210px" }}
+                    >
+                      <option value="all">All categories</option>
+                      {sortedCategories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
                       ))}
-                    </div>
+                    </select>
                   </div>
-                ))}
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "var(--muted-foreground)",
+                    }}
+                  >
+                    {visibleCategories.length} of {sortedCategories.length}{" "}
+                    categories
+                  </div>
+                </div>
+
+                {visibleCategories.map((category) => {
+                  const catItems = itemsByCategory[category.id] || [];
+                  const isExpanded = expandedCategories.has(category.id);
+
+                  return (
+                    <div key={category.id} style={{ marginBottom: "24px" }}>
+                      <button
+                        style={{
+                          width: "100%",
+                          padding: "12px 14px",
+                          border: "1px solid var(--border)",
+                          background: "var(--muted-background)",
+                          borderRadius: "8px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          fontWeight: 800,
+                          color: "var(--foreground)",
+                          cursor: "pointer",
+                        }}
+                        onClick={() => {
+                          const next = new Set(expandedCategories);
+                          if (next.has(category.id)) next.delete(category.id);
+                          else next.add(category.id);
+                          setExpandedCategories(next);
+                        }}
+                      >
+                        <span>
+                          {category.name} ({catItems.length})
+                        </span>
+                        <span aria-hidden="true">{isExpanded ? "▾" : "▸"}</span>
+                      </button>
+
+                      {isExpanded && (
+                        <div style={{ marginTop: "12px" }}>
+                          <div className="admin-table catalog-admin">
+                            <div className="admin-table-head">
+                              <span>ITEM</span>
+                              <span>PRICE</span>
+                              <span>STATUS</span>
+                              <span>ORDER</span>
+                              <span />
+                            </div>
+                            {catItems.map((item, index) => (
+                              <div className="admin-table-row" key={item.id}>
+                                <div>
+                                  <strong>{item.name}</strong>
+                                  <small>
+                                    Updated{" "}
+                                    {new Date(
+                                      item.updatedAt,
+                                    ).toLocaleDateString("en-PK")}
+                                  </small>
+                                </div>
+                                <div>
+                                  <div>
+                                    <span
+                                      style={{
+                                        fontSize: "11px",
+                                        color: "var(--muted-foreground)",
+                                      }}
+                                    >
+                                      Market:
+                                    </span>{" "}
+                                    <strong>
+                                      {money(item.marketPrice || item.price)}
+                                    </strong>
+                                  </div>
+                                  <div>
+                                    <span
+                                      style={{
+                                        fontSize: "11px",
+                                        color: "var(--muted-foreground)",
+                                      }}
+                                    >
+                                      Discount:
+                                    </span>{" "}
+                                    <strong>{money(item.price)}</strong>
+                                  </div>
+                                </div>
+                                <button
+                                  className={
+                                    item.visible
+                                      ? "status-button live"
+                                      : "status-button"
+                                  }
+                                  onClick={() =>
+                                    saveItems(
+                                      items.map((e) =>
+                                        e.id === item.id
+                                          ? { ...e, visible: !e.visible }
+                                          : e,
+                                      ),
+                                    )
+                                  }
+                                >
+                                  <Eye size={14} />{" "}
+                                  {item.visible ? "Live" : "Hidden"}
+                                </button>
+                                <div style={{ display: "flex", gap: "4px" }}>
+                                  {index > 0 && (
+                                    <button
+                                      className="icon-button"
+                                      onClick={() => moveItem(item.id, -1)}
+                                      aria-label="Move up"
+                                    >
+                                      <ArrowUp size={14} />
+                                    </button>
+                                  )}
+                                  {index < catItems.length - 1 && (
+                                    <button
+                                      className="icon-button"
+                                      onClick={() => moveItem(item.id, 1)}
+                                      aria-label="Move down"
+                                    >
+                                      <ArrowDown size={14} />
+                                    </button>
+                                  )}
+                                </div>
+                                <button
+                                  className="icon-button"
+                                  onClick={() => setEditing(item)}
+                                  aria-label="Edit item"
+                                >
+                                  <Pencil size={14} />
+                                </button>
+                                <button
+                                  className="icon-button"
+                                  onClick={() => deleteItem(item.id)}
+                                  aria-label="Delete item"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </>
             )}
 
@@ -826,11 +922,31 @@ export default function AdminPage() {
                         style={{
                           display: "flex",
                           justifyContent: "space-between",
+                          alignItems: "center",
                           marginBottom: "4px",
                         }}
                       >
                         <strong>{order.id}</strong>
-                        <strong>{money(order.grandTotal)}</strong>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                            alignItems: "center",
+                          }}
+                        >
+                          <strong>{money(order.grandTotal)}</strong>
+                          <button
+                            className="icon-button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              deleteOrder(order.id);
+                            }}
+                            aria-label="Delete order"
+                            title="Delete order"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
                       <p
                         style={{
@@ -890,12 +1006,22 @@ export default function AdminPage() {
                         )}
                       </p>
                     </div>
-                    <button
-                      className="icon-button"
-                      onClick={() => setSelectedOrder(null)}
-                    >
-                      <X size={16} />
-                    </button>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button
+                        className="icon-button"
+                        onClick={() => deleteOrder(selectedOrder.id)}
+                        aria-label="Delete selected order"
+                        title="Delete selected order"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                      <button
+                        className="icon-button"
+                        onClick={() => setSelectedOrder(null)}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
                   </div>
                   <div style={{ marginBottom: "12px" }}>
                     <p>

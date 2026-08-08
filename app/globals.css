@@ -245,50 +245,74 @@ h1 em {
   transform: rotate(3deg);
   box-shadow: 0 22px 50px rgba(77, 62, 14, 0.16);
 }
+.hero-business-card {
+  background: linear-gradient(135deg, #f2c326 0%, #f8dfa2 100%);
+  border: 2px solid rgba(40, 40, 40, 0.84);
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 .card-tag {
   font-size: 9px;
   letter-spacing: 0.2em;
   font-weight: 900;
 }
-.rice-art {
-  height: 210px;
-  position: relative;
-  display: grid;
-  place-items: center;
+.business-card-content {
+  margin-top: 34px;
 }
-.rice-bag {
-  width: 145px;
-  height: 170px;
-  background: #fffdf4;
-  border: 5px solid #242424;
-  transform: rotate(-7deg);
-  display: grid;
-  place-items: center;
-  font-size: 46px;
-  font-weight: 900;
-  letter-spacing: -0.1em;
-  box-shadow: 12px 11px 0 #d3a910;
+.business-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
-.rice-grain {
-  position: absolute;
-  width: 10px;
-  height: 5px;
-  background: #fff7d3;
+.business-heading h2 {
+  font-size: 35px;
+  line-height: 1.02;
+  margin: 2px 0 0;
+  letter-spacing: -0.04em;
+}
+.business-kicker {
+  margin: 0 0 3px;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.business-icon {
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
-  transform: rotate(35deg);
+  display: grid;
+  place-items: center;
+  background: var(--dark);
+  color: var(--primary);
 }
-.grain-one {
-  left: 45px;
-  top: 55px;
+.business-copy {
+  margin-top: 20px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #4d4a42;
 }
-.grain-two {
-  right: 58px;
-  top: 125px;
-  transform: rotate(-20deg);
+.business-points {
+  padding: 0;
+  margin: 20px 0 22px;
+  list-style: none;
 }
-.grain-three {
-  right: 30px;
-  top: 58px;
+.business-points li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-weight: 800;
+  font-size: 13px;
+}
+.business-points li svg {
+  color: #3c6c34;
+}
+.whatsapp-button {
+  border: 2px solid var(--dark);
+  font-weight: 900;
 }
 .hero-card p {
   font-weight: 800;

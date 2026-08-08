@@ -1,18 +1,28 @@
-import type { Metadata, Viewport } from 'next'
-import './globals.css'
+import type { Metadata, Viewport } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'Food Link | Wholesale Groceries Lahore',
-  description: 'Order wholesale groceries from Akbari Mandi, Lahore. Fresh prices, simple ordering and reliable delivery.',
-  generator: 'Food Link',
-}
+  title: "Food Link | Wholesale Groceries Lahore",
+  description:
+    "Order wholesale groceries from Akbari Mandi, Lahore. Fresh prices, simple ordering and reliable delivery.",
+  generator: "Food Link",
+  icons: {
+    icon: "/icon.svg",
+  },
+};
 
-export const viewport: Viewport = { colorScheme: 'light', themeColor: '#f4c62b', userScalable: true }
+export const viewport: Viewport = {
+  colorScheme: "light",
+  themeColor: "#f4c62b",
+  userScalable: true,
+};
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className="bg-background">
       <body>{children}</body>
     </html>
-  )
+  );
 }
