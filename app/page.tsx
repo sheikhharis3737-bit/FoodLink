@@ -310,7 +310,7 @@ export default function Page() {
           </div>
         </div>
         <aside className="hero-card hero-business-card">
-          <div className="card-tag">FOOD LINK WHOLESALE</div>
+          <div className="card-tag">FOOD LINK</div>
           <div className="business-card-content">
             <div className="business-heading">
               <span className="business-icon">
