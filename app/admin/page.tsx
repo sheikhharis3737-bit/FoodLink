@@ -29,7 +29,7 @@ type BrandProduct = {
   id: string;
   name: string;
   price: number;
-  packWeight: number;
+  packWeight: number | string;
   unit: string;
   image: string;
   sortOrder: number;
@@ -361,13 +361,17 @@ export default function AdminPage() {
   };
   const saveBrandProduct = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const packWeight = Number(editingBrandProduct?.product.packWeight);
     if (
       !editingBrandProduct?.product.name.trim() ||
-      editingBrandProduct.product.price < 0
+      editingBrandProduct.product.price < 0 ||
+      !Number.isFinite(packWeight) ||
+      packWeight <= 0
     )
       return;
 
-    const { categoryId, product } = editingBrandProduct;
+    const { categoryId, product: unsavedProduct } = editingBrandProduct;
+    const product = { ...unsavedProduct, packWeight };
     const category = brandCategories.find((item) => item.id === categoryId);
     if (!category) return;
     const exists = category.products.some((item) => item.id === product.id);
@@ -1138,20 +1142,20 @@ export default function AdminPage() {
                       <label>
                         Weight (KGS)
                         <input
-                          type="number"
-                          min="0.01"
-                          step="0.01"
+                          type="text"
+                          inputMode="decimal"
                           value={editingBrandProduct.product.packWeight}
                           onChange={(event) =>
                             setEditingBrandProduct({
                               ...editingBrandProduct,
                               product: {
                                 ...editingBrandProduct.product,
-                                packWeight: Number(event.target.value),
+                                packWeight: event.target.value,
                               },
                             })
                           }
-                          placeholder="e.g. 15, 20, 25"
+                          placeholder="Enter weight, e.g. 15"
+                          required
                         />
                         <small>Enter the number of kilograms in the pack.</small>
                       </label>
@@ -1319,7 +1323,7 @@ export default function AdminPage() {
                                   id: "",
                                   name: "",
                                   price: 0,
-                                  packWeight: 1,
+                                  packWeight: "",
                                   unit: "KG",
                                   image: "",
                                   sortOrder: category.products.length,
