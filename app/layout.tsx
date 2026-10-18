@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     "Order wholesale groceries from Akbari Mandi, Lahore. Fresh prices, simple ordering and reliable delivery.",
   generator: "Food Link",
   icons: {
-    icon: "/icon.svg",
+    icon: "/foodlink-favicon.svg",
   },
 };
 
