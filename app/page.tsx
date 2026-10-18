@@ -261,10 +261,16 @@ export default function Page() {
           className={menuOpen ? "main-nav is-open" : "main-nav"}
           aria-label="Primary navigation"
         >
-          <a href="#order" onClick={() => setMenuOpen(false)}>
-            Order online
+          <a href="/" onClick={() => setMenuOpen(false)}>
+            Home
           </a>
-          <a href="#how-it-works" onClick={() => setMenuOpen(false)}>
+          <a href="/brands" onClick={() => setMenuOpen(false)}>
+            Brands
+          </a>
+          <a href="/build-order" onClick={() => setMenuOpen(false)}>
+            Build order
+          </a>
+          <a href="/#how-it-works" onClick={() => setMenuOpen(false)}>
             How it works
           </a>
           <a href="tel:03088458884">Call us</a>
@@ -323,8 +329,8 @@ export default function Page() {
             fair market prices with quick Lahore delivery.
           </p>
           <div className="hero-actions">
-            <a className="button button-primary" href="#order">
-              Order now <ArrowRight size={18} />
+            <a className="button button-primary" href="/build-order">
+              Build your order <ArrowRight size={18} />
             </a>
             <a className="button button-quiet" href="tel:03088458884">
               <Phone size={17} /> Call now
@@ -476,195 +482,6 @@ export default function Page() {
         </div>
       </section>
 
-      <section className="order-section" id="order">
-        <div className="section-heading">
-          <p className="eyebrow">
-            <span /> Fresh prices, ready to order
-          </p>
-          <h2>Build your order</h2>
-          <p>
-            Expand categories to browse and select items. Enter quantities in
-            KG.
-          </p>
-        </div>
-        <div className="order-layout">
-          <div className="catalog-panel">
-            {sortedCategories.map((category) => {
-              const catItems = itemsByCategory[category.id] || [];
-              const isExpanded = expandedCategories.has(category.id);
-              return catItems.length ? (
-                <div key={category.id} style={{ marginBottom: "12px" }}>
-                  <button
-                    style={{
-                      width: "100%",
-                      padding: "12px",
-                      background: "var(--muted-background)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      fontSize: "14px",
-                      fontWeight: 700,
-                    }}
-                    onClick={() => {
-                      const next = new Set(expandedCategories);
-                      isExpanded
-                        ? next.delete(category.id)
-                        : next.add(category.id);
-                      setExpandedCategories(next);
-                    }}
-                  >
-                    <span>
-                      {category.name} ({catItems.length})
-                    </span>
-                    <span>{isExpanded ? "▼" : "▶"}</span>
-                  </button>
-                  {isExpanded && (
-                    <div style={{ marginTop: "8px" }}>
-                      {catItems.map((item) => (
-                        <div className="catalog-row" key={item.id}>
-                          <div className="item-name">
-                            <span className="item-dot" />{" "}
-                            <strong>{item.name}</strong>
-                            <small>Per {item.unit}</small>
-                          </div>
-                          <span className="item-price item-price-discount">
-                            <span className="market-price-label">
-                              <span className="market-price-cross">
-                                {money(item.marketPrice || item.price)}
-                              </span>
-                            </span>
-                            <span className="discounted-price-label">
-                              {money(item.price)}
-                            </span>
-                          </span>
-                          <div className="quantity-control">
-                            <button
-                              onClick={() =>
-                                setQuantity(
-                                  item.id,
-                                  (quantities[item.id] || 0) - 1,
-                                )
-                              }
-                              aria-label={`Decrease ${item.name}`}
-                            >
-                              <Minus size={15} />
-                            </button>
-                            <input
-                              aria-label={`Quantity of ${item.name}`}
-                              type="number"
-                              min="0"
-                              step="1"
-                              value={quantities[item.id] || ""}
-                              placeholder="0"
-                              onChange={(event) =>
-                                setQuantity(item.id, Number(event.target.value))
-                              }
-                            />
-                            <button
-                              onClick={() =>
-                                setQuantity(
-                                  item.id,
-                                  (quantities[item.id] || 0) + 1,
-                                )
-                              }
-                              aria-label={`Increase ${item.name}`}
-                            >
-                              <Plus size={15} />
-                            </button>
-                          </div>
-                          <strong className="line-total">
-                            {money((quantities[item.id] || 0) * item.price)}
-                          </strong>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : null;
-            })}
-            <div className="catalog-total">
-              <span>Grand total</span>
-              <strong>{money(grandTotal)}</strong>
-            </div>
-          </div>
-          <aside className="checkout-card">
-            <div className="checkout-title">
-              <span className="step-number">01</span>
-              <div>
-                <h3>Where should we deliver?</h3>
-                <p>We&apos;ll confirm your order on WhatsApp.</p>
-              </div>
-            </div>
-            <label>
-              Customer name
-              <input
-                value={form.name}
-                onChange={(event) =>
-                  setForm({ ...form, name: event.target.value })
-                }
-                placeholder="Your full name"
-              />
-            </label>
-            <label>
-              Mobile number
-              <input
-                value={form.phone}
-                onChange={(event) =>
-                  setForm({ ...form, phone: event.target.value })
-                }
-                placeholder="0300 0000000"
-                inputMode="tel"
-              />
-            </label>
-            <label>
-              Delivery address
-              <textarea
-                value={form.address}
-                onChange={(event) =>
-                  setForm({ ...form, address: event.target.value })
-                }
-                placeholder="Shop / restaurant address"
-                rows={2}
-              />
-            </label>
-            <label>
-              Notes <span>(optional)</span>
-              <textarea
-                value={form.notes}
-                onChange={(event) =>
-                  setForm({ ...form, notes: event.target.value })
-                }
-                placeholder="Anything we should know?"
-                rows={2}
-              />
-            </label>
-            {notice && (
-              <p
-                className={
-                  notice.startsWith("Order saved")
-                    ? "form-notice success"
-                    : "form-notice"
-                }
-              >
-                {notice}
-              </p>
-            )}
-            <button
-              className="button button-primary full-width"
-              onClick={submitOrder}
-            >
-              Send order on WhatsApp <ArrowRight size={18} />
-            </button>
-            <p className="form-footnote">
-              We never share your details. Your order goes straight to WhatsApp.
-            </p>
-          </aside>
-        </div>
-      </section>
-
       <section className="mini-cta">
         <div>
           <p className="eyebrow">
@@ -674,11 +491,9 @@ export default function Page() {
         </div>
         <a
           className="button button-primary"
-          href="https://wa.me/923088458884"
-          target="_blank"
-          rel="noopener noreferrer"
+          href="/build-order"
         >
-          WhatsApp for bulk pricing <ArrowRight size={18} />
+          Start custom order <ArrowRight size={18} />
         </a>
       </section>
     </main>

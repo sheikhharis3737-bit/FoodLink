@@ -25,6 +25,18 @@ type Item = {
   categoryId: string;
 };
 type Category = { id: string; name: string; sort_order: number };
+type Brand = {
+  id: string;
+  name: string;
+  tagline: string;
+  description: string;
+  image: string;
+  featured: boolean;
+  categories: {
+    name: string;
+    items: { name: string; price: number; unit: string }[];
+  }[];
+};
 type OrderLine = {
   itemId: string;
   name: string;
@@ -113,6 +125,45 @@ const seedCategories: Category[] = [
   { id: "pulses", name: "Pulses & Legumes", sort_order: 2 },
   { id: "flours", name: "Flours & Grains", sort_order: 3 },
 ];
+const BRAND_STORAGE_KEY = "foodlink-brands";
+const seedBrands: Brand[] = [
+  {
+    id: "premium-rice",
+    name: "Premium Rice House",
+    tagline: "Best-selling basmati and sella rice",
+    description: "Trusted by retailers and food businesses for premium quality grain and dependable wholesale value.",
+    image: "https://images.unsplash.com/photo-1586201375761-83865001a6d8?auto=format&fit=crop&w=900&q=80",
+    featured: true,
+    categories: [
+      {
+        name: "Rice Varieties",
+        items: [
+          { name: "Super Kernel Basmati", price: 420, unit: "KG" },
+          { name: "Broken Rice 1121", price: 285, unit: "KG" },
+          { name: "Super Kernel Sella", price: 445, unit: "KG" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "pulse-market",
+    name: "Pulse Market",
+    tagline: "Lentils, chickpeas and legumes",
+    description: "Fresh pulses and legumes for homestyle kitchens, shops, and institutional buyers.",
+    image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80",
+    featured: false,
+    categories: [
+      {
+        name: "Pulses & Legumes",
+        items: [
+          { name: "White Chickpeas", price: 360, unit: "KG" },
+          { name: "Red Lentils", price: 310, unit: "KG" },
+          { name: "Masoor Premium", price: 325, unit: "KG" },
+        ],
+      },
+    ],
+  },
+];
 const money = (value: number) => `Rs.${value.toLocaleString("en-PK")}`;
 
 export default function AdminPage() {
@@ -124,8 +175,10 @@ export default function AdminPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [editing, setEditing] = useState<Item | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [error, setError] = useState("");
-  const [tab, setTab] = useState<"items" | "categories">("items");
+  const [tab, setTab] = useState<"items" | "categories" | "brands">("items");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(),
@@ -156,6 +209,21 @@ export default function AdminPage() {
         setCategories(seedCategories);
         setOrders([]);
       });
+
+    try {
+      const savedBrands = window.localStorage.getItem(BRAND_STORAGE_KEY);
+      if (savedBrands) {
+        const parsed = JSON.parse(savedBrands) as Brand[];
+        if (Array.isArray(parsed) && parsed.length) setBrands(parsed);
+      }
+    } catch {
+      setBrands(seedBrands);
+    }
+
+    if (!window.localStorage.getItem(BRAND_STORAGE_KEY)) {
+      setBrands(seedBrands);
+      window.localStorage.setItem(BRAND_STORAGE_KEY, JSON.stringify(seedBrands));
+    }
   }, []);
 
   const sortedItems = useMemo(
@@ -200,6 +268,10 @@ export default function AdminPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(next),
     }).catch(() => setError("Could not save categories. Please try again."));
+  };
+  const saveBrands = (next: Brand[]) => {
+    setBrands(next);
+    window.localStorage.setItem(BRAND_STORAGE_KEY, JSON.stringify(next));
   };
   const submitLogin = (event: FormEvent) => {
     event.preventDefault();
@@ -274,6 +346,26 @@ export default function AdminPage() {
         ];
     saveCategories(next);
     setEditingCategory(null);
+  };
+  const saveBrand = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingBrand?.name.trim() || !editingBrand.tagline.trim()) return;
+
+    const next = editingBrand.id
+      ? brands.map((brand) =>
+          brand.id === editingBrand.id ? { ...editingBrand, name: editingBrand.name.trim() } : brand,
+        )
+      : [
+          ...brands,
+          {
+            ...editingBrand,
+            id: crypto.randomUUID(),
+            featured: false,
+          },
+        ];
+
+    saveBrands(next);
+    setEditingBrand(null);
   };
   const saveItem = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -422,6 +514,13 @@ export default function AdminPage() {
                 style={{ flex: 1 }}
               >
                 Categories
+              </button>
+              <button
+                className={`button ${tab === "brands" ? "button-primary" : "button-quiet"}`}
+                onClick={() => setTab("brands")}
+                style={{ flex: 1 }}
+              >
+                Brands
               </button>
             </div>
 
@@ -885,6 +984,120 @@ export default function AdminPage() {
                       >
                         <Trash2 size={14} />
                       </button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {tab === "brands" && (
+              <>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "16px",
+                  }}
+                >
+                  <div>
+                    <p className="eyebrow">
+                      <span /> Brands
+                    </p>
+                    <h2>Wholesale brand showcase</h2>
+                  </div>
+                  <button
+                    className="button button-dark"
+                    onClick={() =>
+                      setEditingBrand({
+                        id: "",
+                        name: "",
+                        tagline: "",
+                        description: "",
+                        image: "https://images.unsplash.com/photo-1586201375761-83865001a6d8?auto=format&fit=crop&w=900&q=80",
+                        featured: false,
+                        categories: [{ name: "Rice Varieties", items: [{ name: "Sample product", price: 0, unit: "KG" }] }],
+                      })
+                    }
+                  >
+                    <Plus size={17} /> Add brand
+                  </button>
+                </div>
+
+                {editingBrand && (
+                  <form onSubmit={saveBrand} style={{ marginBottom: "24px", padding: "16px", backgroundColor: "var(--muted-background)", borderRadius: "8px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                      <label>
+                        Brand name
+                        <input
+                          autoFocus
+                          value={editingBrand.name}
+                          onChange={(e) => setEditingBrand({ ...editingBrand, name: e.target.value })}
+                          placeholder="Premium Rice House"
+                        />
+                      </label>
+                      <label>
+                        Tagline
+                        <input
+                          value={editingBrand.tagline}
+                          onChange={(e) => setEditingBrand({ ...editingBrand, tagline: e.target.value })}
+                          placeholder="Best-selling rice and grains"
+                        />
+                      </label>
+                      <label style={{ gridColumn: "1 / -1" }}>
+                        Image URL
+                        <input
+                          value={editingBrand.image}
+                          onChange={(e) => setEditingBrand({ ...editingBrand, image: e.target.value })}
+                          placeholder="https://..."
+                        />
+                      </label>
+                      <label style={{ gridColumn: "1 / -1" }}>
+                        Description
+                        <textarea
+                          value={editingBrand.description}
+                          onChange={(e) => setEditingBrand({ ...editingBrand, description: e.target.value })}
+                          placeholder="What makes this brand or product line special?"
+                          rows={3}
+                        />
+                      </label>
+                    </div>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button type="submit" className="button button-primary" style={{ flex: 1 }}>
+                        <Save size={16} /> Save
+                      </button>
+                      <button type="button" className="button button-quiet" onClick={() => setEditingBrand(null)} style={{ flex: 1 }}>
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                <div className="admin-table">
+                  <div className="admin-table-head">
+                    <span>BRAND</span>
+                    <span>TOP LINE</span>
+                    <span>FEATURED</span>
+                    <span />
+                  </div>
+                  {brands.map((brand) => (
+                    <div className="admin-table-row" key={brand.id}>
+                      <div>
+                        <strong>{brand.name}</strong>
+                        <small>{brand.categories.length} categories</small>
+                      </div>
+                      <div>
+                        <strong>{brand.tagline}</strong>
+                      </div>
+                      <strong>{brand.featured ? "Yes" : "No"}</strong>
+                      <div className="row-actions">
+                        <button className="icon-button" onClick={() => setEditingBrand(brand)} aria-label="Edit brand">
+                          <Pencil size={14} />
+                        </button>
+                        <button className="icon-button" onClick={() => saveBrands(brands.filter((item) => item.id !== brand.id))} aria-label="Delete brand">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
