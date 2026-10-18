@@ -7,6 +7,7 @@ type Product = {
   id: string;
   name: string;
   price: number;
+  packWeight: number;
   unit: string;
   image: string;
   sortOrder: number;
@@ -163,7 +164,9 @@ export default function BrandsPage() {
                           <h4>{product.name}</h4>
                           <div>
                             <strong>{money(product.price)}</strong>
-                            <span>per {product.unit}</span>
+                            <span>
+                              per {product.packWeight} {product.unit}
+                            </span>
                           </div>
                         </div>
                       </article>

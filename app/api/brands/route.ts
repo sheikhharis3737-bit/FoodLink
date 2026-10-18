@@ -7,6 +7,7 @@ type Product = {
   id: string;
   name: string;
   price: number;
+  packWeight: number;
   unit: string;
   image: string;
   sortOrder: number;
@@ -40,6 +41,10 @@ async function ensureTables() {
       sort_order INTEGER NOT NULL DEFAULT 0
     )
   `);
+  await pool.query(`
+    ALTER TABLE foodlink_brand_products
+    ADD COLUMN IF NOT EXISTS pack_weight NUMERIC NOT NULL DEFAULT 1
+  `);
 }
 
 export async function GET() {
@@ -50,7 +55,7 @@ export async function GET() {
         "SELECT id, name, description, sort_order AS \"sortOrder\" FROM foodlink_brand_categories ORDER BY sort_order, name",
       ),
       pool.query(
-        "SELECT id, category_id AS \"categoryId\", name, price, unit, image, sort_order AS \"sortOrder\" FROM foodlink_brand_products ORDER BY sort_order, name",
+        "SELECT id, category_id AS \"categoryId\", name, price, pack_weight AS \"packWeight\", unit, image, sort_order AS \"sortOrder\" FROM foodlink_brand_products ORDER BY sort_order, name",
       ),
     ]);
 
@@ -96,6 +101,8 @@ export async function PUT(request: Request) {
           !product.name?.trim() ||
           !Number.isFinite(Number(product.price)) ||
           Number(product.price) < 0 ||
+          !Number.isFinite(Number(product.packWeight ?? 1)) ||
+          Number(product.packWeight ?? 1) <= 0 ||
           (product.image &&
             (!/^data:image\/(jpeg|png|webp);base64,/.test(product.image) ||
               product.image.length > 2_800_000))
@@ -139,14 +146,15 @@ export async function PUT(request: Request) {
 
         for (const [productIndex, product] of category.products.entries()) {
           await client.query(
-            `INSERT INTO foodlink_brand_products (id, category_id, name, price, unit, image, sort_order)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
-             ON CONFLICT (id) DO UPDATE SET category_id = EXCLUDED.category_id, name = EXCLUDED.name, price = EXCLUDED.price, unit = EXCLUDED.unit, image = EXCLUDED.image, sort_order = EXCLUDED.sort_order`,
+            `INSERT INTO foodlink_brand_products (id, category_id, name, price, pack_weight, unit, image, sort_order)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             ON CONFLICT (id) DO UPDATE SET category_id = EXCLUDED.category_id, name = EXCLUDED.name, price = EXCLUDED.price, pack_weight = EXCLUDED.pack_weight, unit = EXCLUDED.unit, image = EXCLUDED.image, sort_order = EXCLUDED.sort_order`,
             [
               product.id,
               category.id,
               product.name.trim(),
               Math.round(Number(product.price)),
+              Number(product.packWeight ?? 1),
               product.unit || "KG",
               product.image || "",
               product.sortOrder ?? productIndex,

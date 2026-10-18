@@ -29,6 +29,7 @@ type BrandProduct = {
   id: string;
   name: string;
   price: number;
+  packWeight: number;
   unit: string;
   image: string;
   sortOrder: number;
@@ -1135,7 +1136,26 @@ export default function AdminPage() {
                         />
                       </label>
                       <label>
-                        Unit
+                        Pack weight
+                        <input
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          value={editingBrandProduct.product.packWeight}
+                          onChange={(event) =>
+                            setEditingBrandProduct({
+                              ...editingBrandProduct,
+                              product: {
+                                ...editingBrandProduct.product,
+                                packWeight: Number(event.target.value),
+                              },
+                            })
+                          }
+                          placeholder="e.g. 25"
+                        />
+                      </label>
+                      <label>
+                        Weight unit
                         <input
                           value={editingBrandProduct.product.unit}
                           onChange={(event) =>
@@ -1276,7 +1296,9 @@ export default function AdminPage() {
                                 <strong>{product.name}</strong>
                               </span>
                               <strong>{money(product.price)}</strong>
-                              <span>{product.unit}</span>
+                              <span>
+                                {product.packWeight} {product.unit}
+                              </span>
                               <span className="row-actions">
                                 <button
                                   className="icon-button"
@@ -1312,6 +1334,7 @@ export default function AdminPage() {
                                   id: "",
                                   name: "",
                                   price: 0,
+                                  packWeight: 1,
                                   unit: "KG",
                                   image: "",
                                   sortOrder: category.products.length,
