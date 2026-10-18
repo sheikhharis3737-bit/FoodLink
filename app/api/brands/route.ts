@@ -55,7 +55,7 @@ export async function GET() {
         "SELECT id, name, description, sort_order AS \"sortOrder\" FROM foodlink_brand_categories ORDER BY sort_order, name",
       ),
       pool.query(
-        "SELECT id, category_id AS \"categoryId\", name, price, pack_weight AS \"packWeight\", unit, image, sort_order AS \"sortOrder\" FROM foodlink_brand_products ORDER BY sort_order, name",
+        "SELECT id, category_id AS \"categoryId\", name, price, pack_weight AS \"packWeight\", 'KGS' AS unit, image, sort_order AS \"sortOrder\" FROM foodlink_brand_products ORDER BY sort_order, name",
       ),
     ]);
 
@@ -155,7 +155,7 @@ export async function PUT(request: Request) {
               product.name.trim(),
               Math.round(Number(product.price)),
               Number(product.packWeight ?? 1),
-              product.unit || "KG",
+              "KGS",
               product.image || "",
               product.sortOrder ?? productIndex,
             ],

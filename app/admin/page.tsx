@@ -1136,7 +1136,7 @@ export default function AdminPage() {
                         />
                       </label>
                       <label>
-                        Pack weight
+                        Weight (KGS)
                         <input
                           type="number"
                           min="0.01"
@@ -1151,24 +1151,9 @@ export default function AdminPage() {
                               },
                             })
                           }
-                          placeholder="e.g. 25"
+                          placeholder="e.g. 15, 20, 25"
                         />
-                      </label>
-                      <label>
-                        Weight unit
-                        <input
-                          value={editingBrandProduct.product.unit}
-                          onChange={(event) =>
-                            setEditingBrandProduct({
-                              ...editingBrandProduct,
-                              product: {
-                                ...editingBrandProduct.product,
-                                unit: event.target.value,
-                              },
-                            })
-                          }
-                          placeholder="KG"
-                        />
+                        <small>Enter the number of kilograms in the pack.</small>
                       </label>
                       <label style={{ gridColumn: "1 / -1" }}>
                         Product photo (JPG, PNG, WebP; up to 2 MB)
@@ -1282,7 +1267,7 @@ export default function AdminPage() {
                           <div className="brand-admin-products-head">
                             <span>PRODUCT</span>
                             <span>PRICE</span>
-                            <span>UNIT</span>
+                            <span>PACK WEIGHT</span>
                             <span>ACTIONS</span>
                           </div>
                           {category.products.map((product) => (
@@ -1297,7 +1282,7 @@ export default function AdminPage() {
                               </span>
                               <strong>{money(product.price)}</strong>
                               <span>
-                                {product.packWeight} {product.unit}
+                                {product.packWeight} KGS
                               </span>
                               <span className="row-actions">
                                 <button

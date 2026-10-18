@@ -164,9 +164,7 @@ export default function BrandsPage() {
                           <h4>{product.name}</h4>
                           <div>
                             <strong>{money(product.price)}</strong>
-                            <span>
-                              per {product.packWeight} {product.unit}
-                            </span>
+                            <span>per {product.packWeight} KGS</span>
                           </div>
                         </div>
                       </article>
