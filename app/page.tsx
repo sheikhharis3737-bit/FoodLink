@@ -190,6 +190,7 @@ export default function Page() {
     [availableItems, quantities],
   );
   const grandTotal = lines.reduce((sum, line) => sum + line.total, 0);
+  const featuredItems = useMemo(() => availableItems.slice(0, 4), [availableItems]);
 
   const setQuantity = (id: string, value: number) =>
     setQuantities((current) => ({
@@ -278,6 +279,34 @@ export default function Page() {
         </button>
       </header>
 
+      <section className="customer-proof" id="customers">
+        <div className="proof-copy">
+          <p className="eyebrow">
+            <span /> Trusted by businesses and households
+          </p>
+          <h2>5000+ Satisfied Customers All Over Pakistan</h2>
+          <p>
+            From Lahore retailers to restaurants, hostels, and family kitchens,
+            Food Link helps customers buy quality rice and groceries at smarter
+            wholesale prices.
+          </p>
+        </div>
+        <div className="proof-stats" aria-label="Customer proof stats">
+          <div>
+            <strong>5000+</strong>
+            <span>Happy buyers</span>
+          </div>
+          <div>
+            <strong>25+</strong>
+            <span>Core products</span>
+          </div>
+          <div>
+            <strong>24/7</strong>
+            <span>WhatsApp support</span>
+          </div>
+        </div>
+      </section>
+
       <section className="hero" id="top">
         <div className="hero-copy">
           <p className="eyebrow">
@@ -289,8 +318,9 @@ export default function Page() {
             <em>Wholesale Online Grocery Store.</em>
           </h1>
           <p className="hero-text">
-            Reliable wholesale groceries from Akbari Mandi, delivered to your
-            door. Fresh prices, simple ordering.
+            Trusted by retailers, restaurants, hostels, and families across
+            Pakistan. Get wholesale rice, pulses, and daily grocery essentials at
+            fair market prices with quick Lahore delivery.
           </p>
           <div className="hero-actions">
             <a className="button button-primary" href="#order">
@@ -318,12 +348,12 @@ export default function Page() {
               </span>
               <div>
                 <p className="business-kicker">Bulk Orders</p>
-                <h2>For Industries</h2>
+                <h2>For Retailers</h2>
               </div>
             </div>
             <p className="business-copy">
-              Rice, flour, pulses and fresh grocery supplies for cafés,
-              restaurants, stores and institutional kitchens.
+              Rice, flour, pulses and grocery supply for cafés, restaurants,
+              shops, families, and wholesale buyers across Pakistan.
             </p>
             <ul className="business-points">
               <li>
@@ -346,6 +376,80 @@ export default function Page() {
             </a>
           </div>
         </aside>
+      </section>
+
+      <section className="stats-strip" aria-label="Company highlights">
+        <div>
+          <strong>5000+</strong>
+          <span>Wholesale orders fulfilled</span>
+        </div>
+        <div>
+          <strong>Daily</strong>
+          <span>Fresh stock updates</span>
+        </div>
+        <div>
+          <strong>Same-day</strong>
+          <span>Lahore dispatch support</span>
+        </div>
+      </section>
+
+      <section className="feature-grid" aria-label="Why choose Food Link">
+        <article className="feature-card feature-card-primary">
+          <span className="feature-icon">
+            <Truck size={16} />
+          </span>
+          <h3>Trusted supply partner</h3>
+          <p>
+            From restaurants to retailers, we help businesses buy rice and
+            groceries at dependable wholesale rates.
+          </p>
+        </article>
+        <article className="feature-card">
+          <span className="feature-icon">
+            <MapPin size={16} />
+          </span>
+          <h3>Local Lahore sourcing</h3>
+          <p>
+            We source from the city’s most active grain markets for better value,
+            faster fulfillment, and consistent quality.
+          </p>
+        </article>
+        <article className="feature-card">
+          <span className="feature-icon">
+            <ShoppingBasket size={16} />
+          </span>
+          <h3>Bulk-ready inventory</h3>
+          <p>
+            Rice, lentils, chickpeas, and staple grains are kept ready for quick
+            commercial orders and repeat supply planning.
+          </p>
+        </article>
+      </section>
+
+      <section className="showcase-section">
+        <div className="section-heading mb-tight">
+          <p className="eyebrow">
+            <span /> Most requested staples
+          </p>
+          <h2>Popular wholesale picks</h2>
+        </div>
+        <div className="showcase-grid">
+          {featuredItems.map((item) => (
+            <article className="showcase-card" key={item.id}>
+              <div className="showcase-topline">
+                <span>{item.name}</span>
+                <strong>{money(item.price)}</strong>
+              </div>
+              <p>
+                Premium quality • <em>{item.unit}</em>
+              </p>
+              <div className="showcase-meta">
+                <span>Market price: {money(item.marketPrice)}</span>
+                <span>{item.categoryId.toUpperCase()}</span>
+              </div>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="process" id="how-it-works">
@@ -559,6 +663,23 @@ export default function Page() {
             </p>
           </aside>
         </div>
+      </section>
+
+      <section className="mini-cta">
+        <div>
+          <p className="eyebrow">
+            <span /> Need a custom bulk quote?
+          </p>
+          <h3>Talk to our wholesale team today.</h3>
+        </div>
+        <a
+          className="button button-primary"
+          href="https://wa.me/923088458884"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          WhatsApp for bulk pricing <ArrowRight size={18} />
+        </a>
       </section>
     </main>
   );
