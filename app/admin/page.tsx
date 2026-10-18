@@ -25,17 +25,20 @@ type Item = {
   categoryId: string;
 };
 type Category = { id: string; name: string; sort_order: number };
-type Brand = {
+type BrandProduct = {
   id: string;
   name: string;
-  tagline: string;
-  description: string;
+  price: number;
+  unit: string;
   image: string;
-  featured: boolean;
-  categories: {
-    name: string;
-    items: { name: string; price: number; unit: string }[];
-  }[];
+  sortOrder: number;
+};
+type BrandCategory = {
+  id: string;
+  name: string;
+  description: string;
+  sortOrder: number;
+  products: BrandProduct[];
 };
 type OrderLine = {
   itemId: string;
@@ -125,45 +128,6 @@ const seedCategories: Category[] = [
   { id: "pulses", name: "Pulses & Legumes", sort_order: 2 },
   { id: "flours", name: "Flours & Grains", sort_order: 3 },
 ];
-const BRAND_STORAGE_KEY = "foodlink-brands";
-const seedBrands: Brand[] = [
-  {
-    id: "premium-rice",
-    name: "Premium Rice House",
-    tagline: "Best-selling basmati and sella rice",
-    description: "Trusted by retailers and food businesses for premium quality grain and dependable wholesale value.",
-    image: "https://images.unsplash.com/photo-1586201375761-83865001a6d8?auto=format&fit=crop&w=900&q=80",
-    featured: true,
-    categories: [
-      {
-        name: "Rice Varieties",
-        items: [
-          { name: "Super Kernel Basmati", price: 420, unit: "KG" },
-          { name: "Broken Rice 1121", price: 285, unit: "KG" },
-          { name: "Super Kernel Sella", price: 445, unit: "KG" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "pulse-market",
-    name: "Pulse Market",
-    tagline: "Lentils, chickpeas and legumes",
-    description: "Fresh pulses and legumes for homestyle kitchens, shops, and institutional buyers.",
-    image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80",
-    featured: false,
-    categories: [
-      {
-        name: "Pulses & Legumes",
-        items: [
-          { name: "White Chickpeas", price: 360, unit: "KG" },
-          { name: "Red Lentils", price: 310, unit: "KG" },
-          { name: "Masoor Premium", price: 325, unit: "KG" },
-        ],
-      },
-    ],
-  },
-];
 const money = (value: number) => `Rs.${value.toLocaleString("en-PK")}`;
 
 export default function AdminPage() {
@@ -175,8 +139,16 @@ export default function AdminPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [editing, setEditing] = useState<Item | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
-  const [brands, setBrands] = useState<Brand[]>([]);
+  const [editingBrandCategory, setEditingBrandCategory] =
+    useState<BrandCategory | null>(null);
+  const [editingBrandProduct, setEditingBrandProduct] = useState<{
+    categoryId: string;
+    product: BrandProduct;
+  } | null>(null);
+  const [brandCategories, setBrandCategories] = useState<BrandCategory[]>([]);
+  const [expandedBrandCategories, setExpandedBrandCategories] = useState<
+    Set<string>
+  >(new Set());
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"items" | "categories" | "brands">("items");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -196,34 +168,30 @@ export default function AdminPage() {
       fetch("/api/orders").then((response) =>
         response.ok ? response.json() : [],
       ),
+      fetch("/api/brands").then((response) => {
+        if (!response.ok) throw new Error("Could not load brand catalog");
+        return response.json();
+      }),
     ])
       .then(
-        ([catalog, cats, receivedOrders]: [Item[], Category[], Order[]]) => {
+        ([catalog, cats, receivedOrders, brandCatalog]: [
+          Item[],
+          Category[],
+          Order[],
+          BrandCategory[],
+        ]) => {
           setItems(catalog.length ? catalog : seedItems);
           setCategories(cats.length ? cats : seedCategories);
           setOrders(receivedOrders);
+          setBrandCategories(brandCatalog);
         },
       )
       .catch(() => {
         setItems(seedItems);
         setCategories(seedCategories);
         setOrders([]);
+        setError("Could not load saved data. Refresh the page to try again.");
       });
-
-    try {
-      const savedBrands = window.localStorage.getItem(BRAND_STORAGE_KEY);
-      if (savedBrands) {
-        const parsed = JSON.parse(savedBrands) as Brand[];
-        if (Array.isArray(parsed) && parsed.length) setBrands(parsed);
-      }
-    } catch {
-      setBrands(seedBrands);
-    }
-
-    if (!window.localStorage.getItem(BRAND_STORAGE_KEY)) {
-      setBrands(seedBrands);
-      window.localStorage.setItem(BRAND_STORAGE_KEY, JSON.stringify(seedBrands));
-    }
   }, []);
 
   const sortedItems = useMemo(
@@ -269,9 +237,28 @@ export default function AdminPage() {
       body: JSON.stringify(next),
     }).catch(() => setError("Could not save categories. Please try again."));
   };
-  const saveBrands = (next: Brand[]) => {
-    setBrands(next);
-    window.localStorage.setItem(BRAND_STORAGE_KEY, JSON.stringify(next));
+  const saveBrandCategories = async (next: BrandCategory[]) => {
+    setError("");
+    try {
+      const response = await fetch("/api/brands", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(next),
+      });
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error || "Could not save the brand catalog.");
+      }
+      setBrandCategories(await response.json());
+      return true;
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Could not save the brand catalog.",
+      );
+      return false;
+    }
   };
   const submitLogin = (event: FormEvent) => {
     event.preventDefault();
@@ -347,25 +334,64 @@ export default function AdminPage() {
     saveCategories(next);
     setEditingCategory(null);
   };
-  const saveBrand = (event: FormEvent<HTMLFormElement>) => {
+  const saveBrandCategory = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!editingBrand?.name.trim() || !editingBrand.tagline.trim()) return;
+    if (!editingBrandCategory?.name.trim()) return;
 
-    const next = editingBrand.id
-      ? brands.map((brand) =>
-          brand.id === editingBrand.id ? { ...editingBrand, name: editingBrand.name.trim() } : brand,
+    const next = editingBrandCategory.id
+      ? brandCategories.map((category) =>
+          category.id === editingBrandCategory.id
+            ? {
+                ...editingBrandCategory,
+                name: editingBrandCategory.name.trim(),
+              }
+            : category,
         )
       : [
-          ...brands,
+          ...brandCategories,
           {
-            ...editingBrand,
+            ...editingBrandCategory,
             id: crypto.randomUUID(),
-            featured: false,
+            sortOrder: brandCategories.length,
           },
         ];
 
-    saveBrands(next);
-    setEditingBrand(null);
+    if (await saveBrandCategories(next)) setEditingBrandCategory(null);
+  };
+  const saveBrandProduct = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (
+      !editingBrandProduct?.product.name.trim() ||
+      editingBrandProduct.product.price < 0
+    )
+      return;
+
+    const { categoryId, product } = editingBrandProduct;
+    const category = brandCategories.find((item) => item.id === categoryId);
+    if (!category) return;
+    const exists = category.products.some((item) => item.id === product.id);
+    const products = exists
+      ? category.products.map((item) =>
+          item.id === product.id
+            ? { ...product, name: product.name.trim() }
+            : item,
+        )
+      : [
+          ...category.products,
+          {
+            ...product,
+            id: crypto.randomUUID(),
+            sortOrder: category.products.length,
+          },
+        ];
+    if (
+      await saveBrandCategories(
+        brandCategories.map((item) =>
+          item.id === categoryId ? { ...item, products } : item,
+        ),
+      )
+    )
+      setEditingBrandProduct(null);
   };
   const saveItem = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1002,105 +1028,309 @@ export default function AdminPage() {
                 >
                   <div>
                     <p className="eyebrow">
-                      <span /> Brands
+                      <span /> Wholesale catalog
                     </p>
-                    <h2>Wholesale brand showcase</h2>
+                    <h2>Categories & products</h2>
                   </div>
                   <button
                     className="button button-dark"
                     onClick={() =>
-                      setEditingBrand({
+                      setEditingBrandCategory({
                         id: "",
                         name: "",
-                        tagline: "",
                         description: "",
-                        image: "https://images.unsplash.com/photo-1586201375761-83865001a6d8?auto=format&fit=crop&w=900&q=80",
-                        featured: false,
-                        categories: [{ name: "Rice Varieties", items: [{ name: "Sample product", price: 0, unit: "KG" }] }],
+                        sortOrder: brandCategories.length,
+                        products: [],
                       })
                     }
                   >
-                    <Plus size={17} /> Add brand
+                    <Plus size={17} /> Add category
                   </button>
                 </div>
 
-                {editingBrand && (
-                  <form onSubmit={saveBrand} style={{ marginBottom: "24px", padding: "16px", backgroundColor: "var(--muted-background)", borderRadius: "8px" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-                      <label>
-                        Brand name
-                        <input
-                          autoFocus
-                          value={editingBrand.name}
-                          onChange={(e) => setEditingBrand({ ...editingBrand, name: e.target.value })}
-                          placeholder="Premium Rice House"
-                        />
-                      </label>
-                      <label>
-                        Tagline
-                        <input
-                          value={editingBrand.tagline}
-                          onChange={(e) => setEditingBrand({ ...editingBrand, tagline: e.target.value })}
-                          placeholder="Best-selling rice and grains"
-                        />
-                      </label>
-                      <label style={{ gridColumn: "1 / -1" }}>
-                        Image URL
-                        <input
-                          value={editingBrand.image}
-                          onChange={(e) => setEditingBrand({ ...editingBrand, image: e.target.value })}
-                          placeholder="https://..."
-                        />
-                      </label>
-                      <label style={{ gridColumn: "1 / -1" }}>
-                        Description
-                        <textarea
-                          value={editingBrand.description}
-                          onChange={(e) => setEditingBrand({ ...editingBrand, description: e.target.value })}
-                          placeholder="What makes this brand or product line special?"
-                          rows={3}
-                        />
-                      </label>
-                    </div>
+                {error && <p className="form-notice">{error}</p>}
+
+                {editingBrandCategory && (
+                  <form
+                    onSubmit={saveBrandCategory}
+                    style={{ marginBottom: "24px", padding: "16px", backgroundColor: "var(--muted-background)", borderRadius: "8px" }}
+                  >
+                    <label>
+                      Category name
+                      <input
+                        autoFocus
+                        value={editingBrandCategory.name}
+                        onChange={(event) =>
+                          setEditingBrandCategory({
+                            ...editingBrandCategory,
+                            name: event.target.value,
+                          })
+                        }
+                        placeholder="e.g. Rice, Grains, Pulses"
+                      />
+                    </label>
+                    <label>
+                      Short description
+                      <textarea
+                        value={editingBrandCategory.description}
+                        onChange={(event) =>
+                          setEditingBrandCategory({
+                            ...editingBrandCategory,
+                            description: event.target.value,
+                          })
+                        }
+                        placeholder="A short wholesale category description"
+                        rows={2}
+                      />
+                    </label>
                     <div style={{ display: "flex", gap: "8px" }}>
                       <button type="submit" className="button button-primary" style={{ flex: 1 }}>
-                        <Save size={16} /> Save
+                        <Save size={16} /> Save category
                       </button>
-                      <button type="button" className="button button-quiet" onClick={() => setEditingBrand(null)} style={{ flex: 1 }}>
+                      <button type="button" className="button button-quiet" onClick={() => setEditingBrandCategory(null)} style={{ flex: 1 }}>
                         Cancel
                       </button>
                     </div>
                   </form>
                 )}
 
-                <div className="admin-table">
-                  <div className="admin-table-head">
-                    <span>BRAND</span>
-                    <span>TOP LINE</span>
-                    <span>FEATURED</span>
-                    <span />
-                  </div>
-                  {brands.map((brand) => (
-                    <div className="admin-table-row" key={brand.id}>
-                      <div>
-                        <strong>{brand.name}</strong>
-                        <small>{brand.categories.length} categories</small>
-                      </div>
-                      <div>
-                        <strong>{brand.tagline}</strong>
-                      </div>
-                      <strong>{brand.featured ? "Yes" : "No"}</strong>
-                      <div className="row-actions">
-                        <button className="icon-button" onClick={() => setEditingBrand(brand)} aria-label="Edit brand">
-                          <Pencil size={14} />
-                        </button>
-                        <button className="icon-button" onClick={() => saveBrands(brands.filter((item) => item.id !== brand.id))} aria-label="Delete brand">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+                {editingBrandProduct && (
+                  <form
+                    onSubmit={saveBrandProduct}
+                    style={{ marginBottom: "24px", padding: "16px", backgroundColor: "var(--muted-background)", borderRadius: "8px" }}
+                  >
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                      <label>
+                        Product name
+                        <input
+                          autoFocus
+                          value={editingBrandProduct.product.name}
+                          onChange={(event) =>
+                            setEditingBrandProduct({
+                              ...editingBrandProduct,
+                              product: {
+                                ...editingBrandProduct.product,
+                                name: event.target.value,
+                              },
+                            })
+                          }
+                          placeholder="e.g. Super Kernel Basmati"
+                        />
+                      </label>
+                      <label>
+                        Wholesale price
+                        <input
+                          type="number"
+                          min="0"
+                          value={editingBrandProduct.product.price}
+                          onChange={(event) =>
+                            setEditingBrandProduct({
+                              ...editingBrandProduct,
+                              product: {
+                                ...editingBrandProduct.product,
+                                price: Number(event.target.value),
+                              },
+                            })
+                          }
+                        />
+                      </label>
+                      <label>
+                        Unit
+                        <input
+                          value={editingBrandProduct.product.unit}
+                          onChange={(event) =>
+                            setEditingBrandProduct({
+                              ...editingBrandProduct,
+                              product: {
+                                ...editingBrandProduct.product,
+                                unit: event.target.value,
+                              },
+                            })
+                          }
+                          placeholder="KG"
+                        />
+                      </label>
+                      <label style={{ gridColumn: "1 / -1" }}>
+                        Product photo (JPG, PNG, WebP; up to 2 MB)
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            if (!file) return;
+                            if (
+                              !["image/jpeg", "image/png", "image/webp"].includes(
+                                file.type,
+                              )
+                            ) {
+                              setError("Choose a JPG, PNG, or WebP image.");
+                              event.target.value = "";
+                              return;
+                            }
+                            if (file.size > 2 * 1024 * 1024) {
+                              setError("Choose an image smaller than 2 MB.");
+                              event.target.value = "";
+                              return;
+                            }
+                            setError("");
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                              const imageData =
+                                typeof reader.result === "string"
+                                  ? reader.result
+                                  : null;
+                              if (imageData) {
+                                setEditingBrandProduct((current) =>
+                                  current
+                                    ? {
+                                        ...current,
+                                        product: {
+                                          ...current.product,
+                                          image: imageData,
+                                        },
+                                      }
+                                    : current,
+                                );
+                              }
+                            };
+                            reader.onerror = () =>
+                              setError("Could not read this image file.");
+                            reader.readAsDataURL(file);
+                          }}
+                        />
+                        {editingBrandProduct.product.image && (
+                          <img
+                            className="admin-product-preview"
+                            src={editingBrandProduct.product.image}
+                            alt="Product preview"
+                          />
+                        )}
+                      </label>
                     </div>
-                  ))}
-                </div>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button type="submit" className="button button-primary" style={{ flex: 1 }}>
+                        <Save size={16} /> Save product
+                      </button>
+                      <button type="button" className="button button-quiet" onClick={() => setEditingBrandProduct(null)} style={{ flex: 1 }}>
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {brandCategories.map((category) => {
+                  const expanded = expandedBrandCategories.has(category.id);
+                  return (
+                    <section className="brand-admin-category" key={category.id}>
+                      <div className="brand-admin-category-head">
+                        <button
+                          className="brand-admin-category-toggle"
+                          aria-expanded={expanded}
+                          onClick={() =>
+                            setExpandedBrandCategories((current) => {
+                              const next = new Set(current);
+                              if (next.has(category.id)) next.delete(category.id);
+                              else next.add(category.id);
+                              return next;
+                            })
+                          }
+                        >
+                          <span>
+                            <strong>{category.name}</strong>
+                            <small>{category.products.length} products</small>
+                          </span>
+                          <span>{expanded ? "−" : "+"}</span>
+                        </button>
+                        <div className="row-actions">
+                          <button className="icon-button" onClick={() => setEditingBrandCategory(category)} aria-label={`Edit ${category.name}`}>
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            className="icon-button"
+                            onClick={() => {
+                              if (!window.confirm(`Delete ${category.name} and its products?`)) return;
+                              void saveBrandCategories(brandCategories.filter((item) => item.id !== category.id));
+                            }}
+                            aria-label={`Delete ${category.name}`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                      {expanded && (
+                        <div className="brand-admin-products">
+                          <div className="brand-admin-products-head">
+                            <span>PRODUCT</span>
+                            <span>PRICE</span>
+                            <span>UNIT</span>
+                            <span>ACTIONS</span>
+                          </div>
+                          {category.products.map((product) => (
+                            <div className="brand-admin-product-row" key={product.id}>
+                              <span className="brand-admin-product-name">
+                                {product.image ? (
+                                  <img src={product.image} alt="" />
+                                ) : (
+                                  <span className="brand-admin-image-placeholder">No image</span>
+                                )}
+                                <strong>{product.name}</strong>
+                              </span>
+                              <strong>{money(product.price)}</strong>
+                              <span>{product.unit}</span>
+                              <span className="row-actions">
+                                <button
+                                  className="icon-button"
+                                  onClick={() => setEditingBrandProduct({ categoryId: category.id, product })}
+                                  aria-label={`Edit ${product.name}`}
+                                >
+                                  <Pencil size={14} />
+                                </button>
+                                <button
+                                  className="icon-button"
+                                  onClick={() =>
+                                    void saveBrandCategories(
+                                      brandCategories.map((item) =>
+                                        item.id === category.id
+                                          ? { ...item, products: item.products.filter((entry) => entry.id !== product.id) }
+                                          : item,
+                                      ),
+                                    )
+                                  }
+                                  aria-label={`Delete ${product.name}`}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </span>
+                            </div>
+                          ))}
+                          <button
+                            className="button button-quiet brand-add-product"
+                            onClick={() =>
+                              setEditingBrandProduct({
+                                categoryId: category.id,
+                                product: {
+                                  id: "",
+                                  name: "",
+                                  price: 0,
+                                  unit: "KG",
+                                  image: "",
+                                  sortOrder: category.products.length,
+                                },
+                              })
+                            }
+                          >
+                            <Plus size={15} /> Add product
+                          </button>
+                        </div>
+                      )}
+                    </section>
+                  );
+                })}
+                {!brandCategories.length && (
+                  <p className="empty-state">
+                    No wholesale categories yet. Add a category, then open it to add products and photos.
+                  </p>
+                )}
               </>
             )}
           </section>
